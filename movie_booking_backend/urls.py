@@ -16,6 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
+
+
+# Root API response
+def api_root(request):
+    return JsonResponse({"message": "Welcome to the Movie Booking API!", "endpoints": ["/api/movies/", "/api/cinemas/", "/api/bookings/"]})
 
 urlpatterns = [
     path('admin/', admin.site.urls),
