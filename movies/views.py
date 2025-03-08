@@ -7,3 +7,4 @@ from .serializer import CinemaSerializer, MovieSerializer, BookingSerializer
 class MovieListCreateView(generics.ListCreateAPIView):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
+
