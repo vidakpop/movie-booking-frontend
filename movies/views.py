@@ -18,3 +18,7 @@ class CinemaListCreateView(generics.ListCreateAPIView):
     queryset = Cinema.objects.all()
     serializer_class=CinemaSerializer
 
+#list and create bookings
+class BookingListCreateView(generics.ListCreateAPIView):
+    queryset = Booking.objects.all()
+    serializer_class=BookingSerializer
