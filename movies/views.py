@@ -13,3 +13,8 @@ class MovieRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
 
+#List and create Cinemas
+class CinemaListCreateView(generics.ListCreateAPIView):
+    queryset = Cinema.objects.all()
+    serializer_class=CinemaSerializer
+
