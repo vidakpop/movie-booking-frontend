@@ -18,3 +18,13 @@ class Movie(models.Model):
     def __str__(self):
         return self.title
 
+class Booking(models.Model):
+    user_name=models.CharField(max_length=300)
+    user_email=models.EmailField()
+    movie=models.ForeignKey(Movie,on_delete=models.CASCADE)
+    cinema=models.ForeignKey(Cinema,on_delete=models.CASCADE)
+    seat_number=models.CharField(max_length=10)
+    booking_date=models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user_name} - {self.movie.title} at {self.cinema.name}"
