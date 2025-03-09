@@ -26,4 +26,5 @@ def api_root(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('movies.urls')),
+    path('api/auth/',include('authentication.urls')),
 ]
