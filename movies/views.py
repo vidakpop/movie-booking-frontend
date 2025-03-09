@@ -27,6 +27,10 @@ class SignUpview(APIView):
             "access_token": str(refresh.access_token),
             "refresh_token": str(refresh)
         })
+class LoginView(APIView):
+    permission_classes=[AllowAny]
+
+    
 
 
 
