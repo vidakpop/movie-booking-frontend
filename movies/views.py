@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import generics
+from rest_framework import generics,status
 from . models import Movie, Cinema, Booking
 from .serializer import CinemaSerializer, MovieSerializer, BookingSerializer
 
