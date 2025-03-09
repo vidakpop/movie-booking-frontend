@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework', # added for rest api
+    'rest_framework_simplejwt',
     'corsheaders', # added for cors
     'movies',
 ]
@@ -54,6 +55,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 CORS_ALLOW_ALL_ORIGINS = True # added for cors
+
+
 
 ROOT_URLCONF = 'movie_booking_backend.urls'
 
