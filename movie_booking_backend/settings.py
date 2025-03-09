@@ -56,7 +56,11 @@ MIDDLEWARE = [
 ]
 CORS_ALLOW_ALL_ORIGINS = True # added for cors
 
-
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
 
 ROOT_URLCONF = 'movie_booking_backend.urls'
 
