@@ -1,1 +1,1 @@
-# movie-booking-frontend
+# movie-booking-backend
