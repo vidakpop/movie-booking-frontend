@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils import timezone
 
 class Cinema(models.Model):
     name=models.CharField(max_length=300)
@@ -26,7 +25,7 @@ class Booking(models.Model):
     movie=models.ForeignKey(Movie,on_delete=models.CASCADE)
     cinema=models.ForeignKey(Cinema,on_delete=models.CASCADE)
     seats=models.IntegerField(default=0)
-    booking_date=models.DateTimeField(auto_now_add=True,default=timezone.now)
+    booking_date=models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.user_name} - {self.movie.title} at {self.cinema.name}"
