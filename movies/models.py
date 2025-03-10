@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Cinema(models.Model):
     name=models.CharField(max_length=300)
@@ -20,12 +21,11 @@ class Movie(models.Model):
         return self.title
 
 class Booking(models.Model):
-    user_name=models.CharField(max_length=300)
-    user_email=models.EmailField()
+    user=models.ForeignKey(User,on_delete=models.CASCADE)
     movie=models.ForeignKey(Movie,on_delete=models.CASCADE)
     cinema=models.ForeignKey(Cinema,on_delete=models.CASCADE)
-    seat_number=models.CharField(max_length=10)
+    seats=models.IntegerField()
     booking_date=models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user_name} - {self.movie.title} at {self.cinema.name}"
+        return f"{self.user.user_name} - {self.movie.title} at {self.cinema.name}"
