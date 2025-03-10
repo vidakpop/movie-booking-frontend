@@ -14,6 +14,7 @@ class Movie(models.Model):
     release_date=models.DateField()
     duration=models.IntegerField(help_text='Duration in minutes')
     poster=models.ImageField(upload_to='posters/',null=True, blank=True)
+    price=models.DecimalField(max_digits=10,decimal_places=2)
     cinemas=models.ManyToManyField(Cinema,related_name='movies')
     def __str__(self):
         return self.title
