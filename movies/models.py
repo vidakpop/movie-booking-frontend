@@ -28,4 +28,4 @@ class Booking(models.Model):
     booked_at=models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.user_name} - {self.movie.title} at {self.cinema.name}"
+        return f"{self.user.username} - {self.movie.title} at {self.cinema.name}"
