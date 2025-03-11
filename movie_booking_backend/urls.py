@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
+from django.conf.urls.static import static
+from . import settings
 
 
 # Root API response
@@ -28,3 +30,6 @@ urlpatterns = [
     path('api/', include('movies.urls')),
     path('api/auth/',include('authentication.urls')),
 ]
+#serve media files during development
+if settings.DEBUG:
+        urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
