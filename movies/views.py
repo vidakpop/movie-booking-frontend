@@ -21,8 +21,14 @@ class MovieDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 #List and create Cinemas
 class CinemaListCreateView(generics.ListCreateAPIView):
-    queryset = Cinema.objects.all()
     serializer_class=CinemaSerializer
+    def get_queryset(self):
+        queryset=Cinema.objects.all()
+        movie_id=self.request.query_params.get('movie_id')
+
+        if movie_id:
+            queryset=queryset.filter(movie__id=movie_id)
+        return
 
 #list and create bookings
 class BookingListCreateView(APIView):
