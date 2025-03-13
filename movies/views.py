@@ -27,8 +27,8 @@ class CinemaListCreateView(generics.ListCreateAPIView):
         movie_id=self.request.query_params.get('movie_id')
 
         if movie_id:
-            queryset=queryset.filter(movie__id=movie_id)
-        return
+            queryset=queryset.filter(movies__id=movie_id)
+        return queryset
 
 #list and create bookings
 class BookingListCreateView(APIView):
