@@ -9,6 +9,7 @@ class Cinema(models.Model):
     name=models.CharField(max_length=300)
     location=models.CharField(max_length=300)
     capacity=models.IntegerField()
+    seating_chart=JSONField(default=list) #store seat layout in 2d array
     def __str__(self):
         return self.name
     
