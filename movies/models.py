@@ -13,6 +13,14 @@ class Cinema(models.Model):
     def __str__(self):
         return self.name
     
+    def initialize_seats(self,rows=5,cols=10):
+        #initialize a default seating chart 
+
+        if not self.seating_chart:
+            self.seating_chart = [['O' for _ in range(cols)] for _ in range(rows)]
+            self.capacity=rows*cols
+            self.save()
+    
 class Movie(models.Model):
     title=models.CharField(max_length=300)
     description=models.TextField()
