@@ -54,17 +54,32 @@ class BookingListCreateView(APIView):
         cinema_id=request.data.get('cinema_id')
         selected_seats=request.data.get('seats',[])
 
+        if not selected_seats:
+            return Response({"message": "No seats selected"}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            movie=Movie.objects.get(id=movie_id)
-            cinema=Cinema.objects.get(id=cinema_id)
-            if cinema.capacity<seats:
-                return Response({"message":"Not enough seats available"},status=status.HTTP_400_BAD_REQUEST)
-            cinema.capacity-=seats
-            cinema.save()
-            booking=Booking(user=user,movie=movie,cinema=cinema,seats=seats)
-            booking.save()
-            return Response({"message":"Booking successful"},status=status.HTTP_201_CREATED)
-        except Movie.DoesNotExist:
-            return Response({"message":"Movie not found"},status=status.HTTP_404_NOT_FOUND)
-        except Cinema.DoesNotExist:
-            return Response({"message":"Cinema not found"},status=status.HTTP_404_NOT_FOUND)
+            movie = get_object_or_404(Movie, id=movie_id)
+            cinema = get_object_or_404(Cinema, id=cinema_id)
+
+            # Lock cinema to prevent race conditions
+            with transaction.atomic():
+                cinema.refresh_from_db()
+
+                # Check seat availability
+                for row, col in selected_seats:
+                    if cinema.seating_chart[row][col] == 'X':
+                        return Response({"message": f"Seat {row},{col} is already booked"}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Mark seats as booked
+                for row, col in selected_seats:
+                    cinema.seating_chart[row][col] = 'X'
+                
+                cinema.save()
+
+                # Save booking
+                booking = Booking.objects.create(user=user, movie=movie, cinema=cinema, seats=selected_seats)
+
+                return Response({"message": "Booking successful", "booked_seats": selected_seats}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
