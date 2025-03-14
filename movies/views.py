@@ -54,6 +54,21 @@ class BookingListCreateView(APIView):
         cinema_id=request.data.get('cinema_id')
         selected_seats=request.data.get('seats',[])
 
+        """try:
+            movie=Movie.objects.get(id=movie_id)
+            cinema=Cinema.objects.get(id=cinema_id)
+            if cinema.capacity<seats:
+                return Response({"message":"Not enough seats available"},status=status.HTTP_400_BAD_REQUEST)
+            cinema.capacity-=seats
+            cinema.save()
+            booking=Booking(user=user,movie=movie,cinema=cinema,seats=seats)
+            booking.save()
+            return Response({"message":"Booking successful"},status=status.HTTP_201_CREATED)
+        except Movie.DoesNotExist:
+            return Response({"message":"Movie not found"},status=status.HTTP_404_NOT_FOUND)
+        except Cinema.DoesNotExist:
+            return Response({"message":"Cinema not found"},status=status.HTTP_404_NOT_FOUND)"
+            """
         if not selected_seats:
             return Response({"message": "No seats selected"}, status=status.HTTP_400_BAD_REQUEST)
 
