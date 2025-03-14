@@ -48,10 +48,11 @@ class BookingListCreateView(APIView):
 
     @transaction.atomic  
     def post(self,request):
+        #new booking with seat selection
         user=request.user
         movie_id=request.data.get('movie_id')
         cinema_id=request.data.get('cinema_id')
-        seats=request.data.get('seats')
+        selected_seats=request.data.get('seats',[])
 
         try:
             movie=Movie.objects.get(id=movie_id)
