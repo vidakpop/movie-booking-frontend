@@ -39,7 +39,14 @@ class CinemaListCreateView(generics.ListCreateAPIView):
 
 #list and create bookings
 class BookingListCreateView(APIView):
-    permission_classes=[IsAuthenticated]    
+    permission_classes=[IsAuthenticated]  
+
+    def get(self,request):
+        bookings=Booking.objects.filter(user=request.user)
+        serializer=BookingSerializer(bookings,many=True)
+        return Response(serializer.data)
+
+    @transaction.atomic  
     def post(self,request):
         user=request.user
         movie_id=request.data.get('movie_id')
