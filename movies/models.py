@@ -37,7 +37,7 @@ class Booking(models.Model):
     user=models.ForeignKey(User,on_delete=models.CASCADE)
     movie=models.ForeignKey(Movie,on_delete=models.CASCADE)
     cinema=models.ForeignKey(Cinema,on_delete=models.CASCADE)
-    seats=models.IntegerField(default=0)
+    seats=JSONField(default=list)  # Stores booked seats as [(row, col), (row, col)]
     booked_at=models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
