@@ -9,7 +9,13 @@ from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import transaction
 
+class SeatAvailabilityView(APIView):
+    #RETURNS seats availabity for cinema
+    def get(self,request,cinema_id):
+        cinema=get_object_or_404(Cinema,id=cinema_id)
+        return Response({"seating_chart": cinema.seating_chart}, status=status.HTTP_200_OK)
 
+    
 #List and create Movies
 class MovieListCreateView(generics.ListCreateAPIView):
     queryset = Movie.objects.all()
