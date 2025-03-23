@@ -20,6 +20,11 @@ class Cinema(models.Model):
             self.seating_chart = [['O' for _ in range(cols)] for _ in range(rows)]  # 'O' means open seat
             self.capacity = rows * cols
             self.save()
+# Automatically initialize seating chart when a new cinema is created
+@receiver(post_save, sender=Cinema)
+def create_seating_chart(sender, instance, created, **kwargs):
+    if created:
+        instance.initialize_seats()
     
 class Movie(models.Model):
     title=models.CharField(max_length=300)
