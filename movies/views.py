@@ -52,7 +52,39 @@ class BookingListCreateView(APIView):
         user=request.user
         movie_id=request.data.get('movie_id')
         cinema_id=request.data.get('cinema_id')
-        selected_seats=request.data.get('seats',[])
+        selected_seats=request.data.get('seats',[]) 
+
+        if not selected_seats:
+            return Response({"message": "No seats selected"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            movie = get_object_or_404(Movie, id=movie_id)
+            cinema = get_object_or_404(Cinema, id=cinema_id)
+
+            with transaction.atomic():
+                cinema.refresh_from_db()
+
+                seating_chart = cinema.seating_chart  
+
+                # Validate seat availability
+                for row, col in selected_seats:
+                    if seating_chart[row][col] == "X":  # "X" means booked
+                        return Response({"message": f"Seat ({row}, {col}) is already booked"}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Mark seats as booked
+                for row, col in selected_seats:
+                    seating_chart[row][col] = "X"  # "X" represents a booked seat
+
+                cinema.seating_chart = seating_chart
+                cinema.save()
+
+                # Save booking
+                booking = Booking.objects.create(user=user, movie=movie, cinema=cinema, seats=selected_seats)
+
+                return Response({"message": "Booking successful", "booked_seats": selected_seats}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         """try:
             movie=Movie.objects.get(id=movie_id)
@@ -69,7 +101,7 @@ class BookingListCreateView(APIView):
         except Cinema.DoesNotExist:
             return Response({"message":"Cinema not found"},status=status.HTTP_404_NOT_FOUND)"
             """
-        if not selected_seats:
+      """  if not selected_seats:
             return Response({"message": "No seats selected"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -97,4 +129,4 @@ class BookingListCreateView(APIView):
                 return Response({"message": "Booking successful", "booked_seats": selected_seats}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST) """
