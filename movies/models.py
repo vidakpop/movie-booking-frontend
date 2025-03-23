@@ -6,19 +6,19 @@ from django.dispatch import receiver
 import json
 
 class Cinema(models.Model):
-    name=models.CharField(max_length=300)
-    location=models.CharField(max_length=300)
-    capacity=models.IntegerField()
-    seating_chart=JSONField(default=list) #store seat layout in 2d array
-    def __str__(self):
-        return self.name
-    
-    def initialize_seats(self,rows=5,cols=10):
-        #initialize a default seating chart 
+    name = models.CharField(max_length=300)
+    location = models.CharField(max_length=300)
+    capacity = models.IntegerField()
+    seating_chart = JSONField(default=list)  # Store seat layout as 2D array
 
+    def __str__(self):
+        return self.name  
+
+    def initialize_seats(self, rows=5, cols=10):
+        """Initialize a default seating chart"""
         if not self.seating_chart:
-            self.seating_chart = [['O' for _ in range(cols)] for _ in range(rows)]
-            self.capacity=rows*cols
+            self.seating_chart = [['O' for _ in range(cols)] for _ in range(rows)]  # 'O' means open seat
+            self.capacity = rows * cols
             self.save()
     
 class Movie(models.Model):
