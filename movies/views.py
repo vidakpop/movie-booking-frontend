@@ -38,21 +38,22 @@ class CinemaListCreateView(generics.ListCreateAPIView):
         return queryset
 
 #list and create bookings
-class BookingListCreateView(APIView):
-    permission_classes=[IsAuthenticated]  
+from django.db import transaction
 
-    def get(self,request):
-        bookings=Booking.objects.filter(user=request.user)
-        serializer=BookingSerializer(bookings,many=True)
+class BookingListCreateView(APIView):
+    permission_classes = [IsAuthenticated]  
+
+    def get(self, request):
+        bookings = Booking.objects.filter(user=request.user)
+        serializer = BookingSerializer(bookings, many=True)
         return Response(serializer.data)
 
     @transaction.atomic  
-    def post(self,request):
-        #new booking with seat selection
-        user=request.user
-        movie_id=request.data.get('movie_id')
-        cinema_id=request.data.get('cinema_id')
-        selected_seats=request.data.get('seats',[]) 
+    def post(self, request):
+        user = request.user
+        movie_id = request.data.get("movie_id")
+        cinema_id = request.data.get("cinema_id")
+        selected_seats = request.data.get("seats", [])
 
         if not selected_seats:
             return Response({"message": "No seats selected"}, status=status.HTTP_400_BAD_REQUEST)
@@ -101,32 +102,5 @@ class BookingListCreateView(APIView):
         except Cinema.DoesNotExist:
             return Response({"message":"Cinema not found"},status=status.HTTP_404_NOT_FOUND)"
             """
-      """  if not selected_seats:
-            return Response({"message": "No seats selected"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            movie = get_object_or_404(Movie, id=movie_id)
-            cinema = get_object_or_404(Cinema, id=cinema_id)
-
-            # Lock cinema to prevent race conditions
-            with transaction.atomic():
-                cinema.refresh_from_db()
-
-                # Check seat availability
-                for row, col in selected_seats:
-                    if cinema.seating_chart[row][col] == 'X':
-                        return Response({"message": f"Seat {row},{col} is already booked"}, status=status.HTTP_400_BAD_REQUEST)
-
-                # Mark seats as booked
-                for row, col in selected_seats:
-                    cinema.seating_chart[row][col] = 'X'
-                
-                cinema.save()
-
-                # Save booking
-                booking = Booking.objects.create(user=user, movie=movie, cinema=cinema, seats=selected_seats)
-
-                return Response({"message": "Booking successful", "booked_seats": selected_seats}, status=status.HTTP_201_CREATED)
-
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST) """
+     
+     
