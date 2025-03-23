@@ -39,11 +39,11 @@ class Movie(models.Model):
         return self.title
 
 class Booking(models.Model):
-    user=models.ForeignKey(User,on_delete=models.CASCADE)
-    movie=models.ForeignKey(Movie,on_delete=models.CASCADE)
-    cinema=models.ForeignKey(Cinema,on_delete=models.CASCADE)
-    seats=JSONField(default=list)  # Stores booked seats as [(row, col), (row, col)]
-    booked_at=models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    movie = models.ForeignKey("Movie", on_delete=models.CASCADE)
+    cinema = models.ForeignKey(Cinema, on_delete=models.CASCADE)
+    seats = JSONField(default=list)  # Stores booked seats as [(row, col), (row, col)]
+    booked_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.movie.title} at {self.cinema.name}"
