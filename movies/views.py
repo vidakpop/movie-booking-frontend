@@ -272,6 +272,7 @@ def initiate_payment(request):
         return Response({"message": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponseBadRequest
 @csrf_exempt  # To allow POST requests from external sources like M-Pesa
 def payment_callback(request):
     if request.method != "POST":
