@@ -18,7 +18,7 @@ class Cinema(models.Model):
         """Initialize a default seating chart"""
         if not self.seating_chart:
             self.seating_chart = [['O' for _ in range(cols)] for _ in range(rows)]  # 'O' means open seat
-            self.capacity = rows * cols
+            self.capacity = rows * cols  # Update capacity to match seats
             self.save()
 # Automatically initialize seating chart when a new cinema is created
 @receiver(post_save, sender=Cinema)
