@@ -12,6 +12,7 @@ import os, re, base64 , requests
 from datetime import datetime
 from dotenv import load_dotenv
 from rest_framework.decorators import api_view
+from django.http import JsonResponse, HttpResponseBadRequest
 
 class SeatAvailabilityView(APIView):
     #RETURNS seats availabity for cinema
