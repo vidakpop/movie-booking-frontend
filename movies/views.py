@@ -302,6 +302,23 @@ def query_stk_push(checkout_request_id):
         return {"error": str(e)}
 
 # View to query the STK status and return it to the frontend
+def stk_status_view(request):
+    if request.method == 'POST':
+        try:
+            # Parse the JSON body
+            data = json.loads(request.body)
+            checkout_request_id = data.get('checkout_request_id')
+            print("CheckoutRequestID:", checkout_request_id)
+
+            # Query the STK push status using your backend function
+            status = query_stk_push(checkout_request_id)
+
+            # Return the status as a JSON response
+            return JsonResponse({"status": status})
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON body"}, status=400)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseBadRequest
