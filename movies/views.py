@@ -320,38 +320,38 @@ def stk_status_view(request):
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
 
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponseBadRequest
-@csrf_exempt  # To allow POST requests from external sources like M-Pesa
-def payment_callback(request):
-    if request.method != "POST":
-        return HttpResponseBadRequest("Only POST requests are allowed")
+# from django.views.decorators.csrf import csrf_exempt
+# from django.http import JsonResponse, HttpResponseBadRequest
+# @csrf_exempt  # To allow POST requests from external sources like M-Pesa
+# def payment_callback(request):
+#     if request.method != "POST":
+#         return HttpResponseBadRequest("Only POST requests are allowed")
 
-    try:
-        callback_data = json.loads(request.body)  # Parse the request body
-        result_code = callback_data["Body"]["stkCallback"]["ResultCode"]
+#     try:
+#         callback_data = json.loads(request.body)  # Parse the request body
+#         result_code = callback_data["Body"]["stkCallback"]["ResultCode"]
 
-        if result_code == 0:
-            # Successful transaction
-            checkout_id = callback_data["Body"]["stkCallback"]["CheckoutRequestID"]
-            metadata = callback_data["Body"]["stkCallback"]["CallbackMetadata"]["Item"]
+#         if result_code == 0:
+#             # Successful transaction
+#             checkout_id = callback_data["Body"]["stkCallback"]["CheckoutRequestID"]
+#             metadata = callback_data["Body"]["stkCallback"]["CallbackMetadata"]["Item"]
 
-            amount = next(item["Value"] for item in metadata if item["Name"] == "Amount")
-            mpesa_code = next(item["Value"] for item in metadata if item["Name"] == "MpesaReceiptNumber")
-            phone = next(item["Value"] for item in metadata if item["Name"] == "PhoneNumber")
+#             amount = next(item["Value"] for item in metadata if item["Name"] == "Amount")
+#             mpesa_code = next(item["Value"] for item in metadata if item["Name"] == "MpesaReceiptNumber")
+#             phone = next(item["Value"] for item in metadata if item["Name"] == "PhoneNumber")
 
-            # Save transaction to the database
-            Transaction.objects.create(
-                amount=amount, 
-                checkout_id=checkout_id, 
-                mpesa_code=mpesa_code, 
-                phone_number=phone, 
-                status="Success"
-            )
-            return JsonResponse({"ResultCode": 0, "ResultDesc": "Payment successful"})
+#             # Save transaction to the database
+#             Transaction.objects.create(
+#                 amount=amount, 
+#                 checkout_id=checkout_id, 
+#                 mpesa_code=mpesa_code, 
+#                 phone_number=phone, 
+#                 status="Success"
+#             )
+#             return JsonResponse({"ResultCode": 0, "ResultDesc": "Payment successful"})
 
-        # Payment failed
-        return JsonResponse({"ResultCode": result_code, "ResultDesc": "Payment failed"})
+#         # Payment failed
+#         return JsonResponse({"ResultCode": result_code, "ResultDesc": "Payment failed"})
 
-    except (json.JSONDecodeError, KeyError) as e:
-        return HttpResponseBadRequest(f"Invalid request data: {str(e)}")
+#     except (json.JSONDecodeError, KeyError) as e:
+#         return HttpResponseBadRequest(f"Invalid request data: {str(e)}")
