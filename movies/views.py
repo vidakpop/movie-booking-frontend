@@ -270,6 +270,38 @@ def initiate_payment(request):
         return Response({"message": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"message": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# Query STK Push status
+def query_stk_push(checkout_request_id):
+    print("Quering...")
+    try:
+        token = generate_access_token()
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        password = base64.b64encode(
+            (MPESA_SHORTCODE + MPESA_PASSKEY + timestamp).encode()
+        ).decode()
+
+        request_body = {
+            "BusinessShortCode": MPESA_SHORTCODE,
+            "Password": password,
+            "Timestamp": timestamp,
+            "CheckoutRequestID": checkout_request_id
+        }
+
+        response = requests.post(
+            f"{MPESA_BASE_URL}/mpesa/stkpushquery/v1/query",
+            json=request_body,
+            headers=headers,
+        )
+        print(response.json())
+        return response.json()
+
+    except requests.RequestException as e:
+        print(f"Error querying STK status: {str(e)}")
+        return {"error": str(e)}
+
+# View to query the STK status and return it to the frontend
 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponseBadRequest
