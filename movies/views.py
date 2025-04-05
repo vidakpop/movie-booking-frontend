@@ -92,21 +92,7 @@ class BookingListCreateView(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        """try:
-            movie=Movie.objects.get(id=movie_id)
-            cinema=Cinema.objects.get(id=cinema_id)
-            if cinema.capacity<seats:
-                return Response({"message":"Not enough seats available"},status=status.HTTP_400_BAD_REQUEST)
-            cinema.capacity-=seats
-            cinema.save()
-            booking=Booking(user=user,movie=movie,cinema=cinema,seats=seats)
-            booking.save()
-            return Response({"message":"Booking successful"},status=status.HTTP_201_CREATED)
-        except Movie.DoesNotExist:
-            return Response({"message":"Movie not found"},status=status.HTTP_404_NOT_FOUND)
-        except Cinema.DoesNotExist:
-            return Response({"message":"Cinema not found"},status=status.HTTP_404_NOT_FOUND)"
-            """
+        
 
 # Load environment variables
 load_dotenv()
@@ -356,3 +342,23 @@ def stk_status_view(request):
 
 #     except (json.JSONDecodeError, KeyError) as e:
 #         return HttpResponseBadRequest(f"Invalid request data: {str(e)}")
+
+
+
+
+#kwa booking
+"""try:
+            movie=Movie.objects.get(id=movie_id)
+            cinema=Cinema.objects.get(id=cinema_id)
+            if cinema.capacity<seats:
+                return Response({"message":"Not enough seats available"},status=status.HTTP_400_BAD_REQUEST)
+            cinema.capacity-=seats
+            cinema.save()
+            booking=Booking(user=user,movie=movie,cinema=cinema,seats=seats)
+            booking.save()
+            return Response({"message":"Booking successful"},status=status.HTTP_201_CREATED)
+        except Movie.DoesNotExist:
+            return Response({"message":"Movie not found"},status=status.HTTP_404_NOT_FOUND)
+        except Cinema.DoesNotExist:
+            return Response({"message":"Cinema not found"},status=status.HTTP_404_NOT_FOUND)"
+            """
