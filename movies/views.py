@@ -11,7 +11,7 @@ from django.db import transaction
 import os, re, base64 , requests
 from datetime import datetime
 from dotenv import load_dotenv
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from django.http import JsonResponse, HttpResponseBadRequest
 
 class SeatAvailabilityView(APIView):
@@ -244,15 +244,18 @@ def format_phone_number(phone):
 
 # API view to initiate payment
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def initiate_payment(request):
     try:
         phone = request.data.get('phone_number')
         booking_id = request.data.get('booking_id')
-        booking = get_object_or_404(Booking, id=booking_id)
         amount = request.data.get('amount')
 
-        if not phone or not amount:
-            return Response({"message": "Phone number and amount are required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not phone or not amount or not booking_id:
+            return Response({"message": "Phone number, amount, and booking ID are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get booking and make sure it belongs to the user
+        booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
         phone = format_phone_number(phone)
         amount = int(amount)
@@ -263,7 +266,11 @@ def initiate_payment(request):
         if response.get("ResponseCode") == "0":
             checkout_id = response["CheckoutRequestID"]
 
-            # Save transaction
+            # ✅ Update booking status to paid
+            booking.status = "paid"
+            booking.save()
+
+            # ✅ Save transaction
             Transaction.objects.create(
                 user=request.user,
                 booking=booking,
@@ -274,12 +281,13 @@ def initiate_payment(request):
             )
 
             return Response({
-                "message": "Payment initiated",
+                "message": "Payment initiated successfully",
                 "checkout_request_id": checkout_id,
                 "booking_id": booking_id
-            }, status=200)
-        else:
-            return Response({"message": "STK push failed"}, status=400)
+            }, status=status.HTTP_200_OK)
+
+        return Response({"message": "STK push failed"}, status=status.HTTP_400_BAD_REQUEST)
+
     except ValueError as ve:
         return Response({"message": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
