@@ -56,10 +56,11 @@ class BookingListCreateView(APIView):
     @transaction.atomic  
     def post(self, request):
         user = request.user
+        
         movie_id = request.data.get("movie_id")
         cinema_id = request.data.get("cinema_id")
         selected_seats = request.data.get("seats", [])
-        status = 'pending'
+        booking_status = 'pending'  # ✅ Renamed to avoid conflict
 
         if not selected_seats:
             return Response({"message": "No seats selected"}, status=status.HTTP_400_BAD_REQUEST)
@@ -70,7 +71,6 @@ class BookingListCreateView(APIView):
 
             with transaction.atomic():
                 cinema.refresh_from_db()
-
                 seating_chart = cinema.seating_chart  
 
                 # Validate seat availability
@@ -80,20 +80,30 @@ class BookingListCreateView(APIView):
 
                 # Mark seats as booked
                 for row, col in selected_seats:
-                    seating_chart[row][col] = "X"  # "X" represents a booked seat
+                    seating_chart[row][col] = "X"
 
                 cinema.seating_chart = seating_chart
                 cinema.save()
 
                 # Save booking
-                booking = Booking.objects.create(user=user, movie=movie, cinema=cinema, seats=selected_seats)
+                booking = Booking.objects.create(
+                    user=user,
+                    movie=movie,
+                    cinema=cinema,
+                    seats=selected_seats,
+                    status=booking_status  # If your model has a status field
+                )
 
-                return Response({"message": "Booking successful", "booked_seats": selected_seats}, status=status.HTTP_201_CREATED)
+                return Response({
+                    "message": "Booking successful",
+                    "booked_seats": selected_seats,
+                    "booking_id": booking.id  # ✅ Include this!
+                    }, status=status.HTTP_201_CREATED)
+
 
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        
 
 # Load environment variables
 load_dotenv()
