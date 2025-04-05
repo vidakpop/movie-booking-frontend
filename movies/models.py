@@ -57,3 +57,9 @@ class Booking(models.Model):
 class Transaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     booking = models.ForeignKey('Booking', on_delete=models.CASCADE,related_name='transactions')
+    phone_number = models.CharField(max_length=15)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    mpesa_receipt_number = models.CharField(max_length=100, null=True, blank=True)
+    transaction_date = models.DateTimeField(null=True, blank=True)
+    checkout_request_id = models.CharField(max_length=100, unique=True)
+    status = models.CharField(max_length=20, default='pending')
