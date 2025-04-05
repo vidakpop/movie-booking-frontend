@@ -40,15 +40,16 @@ class Movie(models.Model):
 
 class Booking(models.Model):
     STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('CONFIRMED', 'Confirmed'),
-        ('CANCELLED', 'Cancelled'),
+        ('pending', 'Pending'),
+        ('booked', 'Booked'),
+        ('cancelled', 'Cancelled'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     movie = models.ForeignKey("Movie", on_delete=models.CASCADE)
     cinema = models.ForeignKey(Cinema, on_delete=models.CASCADE)
     seats = JSONField(default=list)  # Stores booked seats as [(row, col), (row, col)]
     booked_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):
         return f"{self.user.username} - {self.movie.title} at {self.cinema.name}"
