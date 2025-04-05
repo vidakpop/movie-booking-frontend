@@ -306,23 +306,36 @@ def query_stk_push(checkout_request_id):
         return {"error": str(e)}
 
 # View to query the STK status and return it to the frontend
+@api_view(['POST'])
 def stk_status_view(request):
-    if request.method == 'POST':
-        try:
-            # Parse the JSON body
-            data = json.loads(request.body)
-            checkout_request_id = data.get('checkout_request_id')
-            print("CheckoutRequestID:", checkout_request_id)
+    try:
+        checkout_id = request.data.get("checkout_request_id")
+        status_response = query_stk_push(checkout_id)
 
-            # Query the STK push status using your backend function
-            status = query_stk_push(checkout_request_id)
+        result_code = status_response.get("ResultCode")
+        receipt = status_response.get("MpesaReceiptNumber")
+        transaction_date = status_response.get("TransactionDate")
 
-            # Return the status as a JSON response
-            return JsonResponse({"status": status})
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON body"}, status=400)
+        transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
+        
+        if result_code == 0:
+            transaction.status = "success"
+            transaction.mpesa_receipt_number = receipt
+            transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
+            transaction.save()
 
-    return JsonResponse({"error": "Invalid request method"}, status=405)
+            booking = transaction.booking
+            booking.status = 'booked'
+            booking.save()
+
+            return Response({"message": "Payment confirmed", "status": "success"})
+        else:
+            transaction.status = "failed"
+            transaction.save()
+            return Response({"message": "Payment failed", "status": "failed"})
+
+    except Exception as e:
+        return Response({"message": f"Error: {str(e)}"}, status=500)
 
 # from django.views.decorators.csrf import csrf_exempt
 # from django.http import JsonResponse, HttpResponseBadRequest
