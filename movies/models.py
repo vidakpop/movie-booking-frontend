@@ -53,3 +53,7 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.movie.title} at {self.cinema.name}"
+
+class Transaction(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE)
