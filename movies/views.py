@@ -237,6 +237,8 @@ def format_phone_number(phone):
 def initiate_payment(request):
     try:
         phone = request.data.get('phone_number')
+        booking_id = request.data.get('booking_id')
+        booking = get_object_or_404(Booking, id=booking_id)
         amount = request.data.get('amount')
 
         if not phone or not amount:
@@ -249,11 +251,25 @@ def initiate_payment(request):
         response = initiate_stk_push(phone, amount)
 
         if response.get("ResponseCode") == "0":
-            return Response({"message": "Payment initiated successfully", "response": response}, status=status.HTTP_200_OK)
-        else:
-            error_message = response.get("errorMessage", "STK push failed. Try again.")
-            return Response({"message": "Payment initiation failed", "error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+            checkout_id = response["CheckoutRequestID"]
 
+            # Save transaction
+            Transaction.objects.create(
+                user=request.user,
+                booking=booking,
+                phone_number=phone,
+                amount=amount,
+                checkout_request_id=checkout_id,
+                status="pending"
+            )
+
+            return Response({
+                "message": "Payment initiated",
+                "checkout_request_id": checkout_id,
+                "booking_id": booking_id
+            }, status=200)
+        else:
+            return Response({"message": "STK push failed"}, status=400)
     except ValueError as ve:
         return Response({"message": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
