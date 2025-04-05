@@ -59,6 +59,7 @@ class BookingListCreateView(APIView):
         movie_id = request.data.get("movie_id")
         cinema_id = request.data.get("cinema_id")
         selected_seats = request.data.get("seats", [])
+        status = 'pending'
 
         if not selected_seats:
             return Response({"message": "No seats selected"}, status=status.HTTP_400_BAD_REQUEST)
