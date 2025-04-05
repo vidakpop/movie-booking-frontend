@@ -63,3 +63,6 @@ class Transaction(models.Model):
     transaction_date = models.DateTimeField(null=True, blank=True)
     checkout_request_id = models.CharField(max_length=100, unique=True)
     status = models.CharField(max_length=20, default='pending')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.amount} - {self.status}"
