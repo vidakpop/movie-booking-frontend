@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics,status
-from . models import Movie, Cinema, Booking
+from . models import Movie, Cinema, Booking, Transaction
 from .serializer import CinemaSerializer, MovieSerializer, BookingSerializer
 from rest_framework.response import Response
 from rest_framework.views import APIView
