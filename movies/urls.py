@@ -7,6 +7,7 @@ from .views import (
     BookingListCreateView,
     initiate_payment,
     stk_status_view,
+    release_seats,
 )
 
 urlpatterns = [
@@ -28,4 +29,7 @@ urlpatterns = [
 
     # STK push status
     path("payment/status/", stk_status_view, name="stk-status"),
+
+    # Release seats
+    path("release-seats/", release_seats, name="release-seats"),
 ]
