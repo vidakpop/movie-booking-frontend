@@ -355,6 +355,19 @@ def stk_status_view(request):
     except Exception as e:
         return Response({"message": f"Error: {str(e)}"}, status=500)
 
+@api_view(['POST'])
+def release_seats(request):
+    booking_id = request.data.get('booking_id')
+    if not booking_id:
+        return Response({'error': 'Booking ID missing'}, status=400)
+
+    booking = Booking.objects.filter(id=booking_id, paid=False).first()
+    if booking:
+        booking.delete()  # Or free the seats instead
+        return Response({'message': 'Seats released'})
+    return Response({'error': 'Booking not found or already paid'}, status=404)
+
+
 # from django.views.decorators.csrf import csrf_exempt
 # from django.http import JsonResponse, HttpResponseBadRequest
 # @csrf_exempt  # To allow POST requests from external sources like M-Pesa
