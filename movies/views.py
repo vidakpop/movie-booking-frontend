@@ -329,6 +329,13 @@ def stk_status_view(request):
     try:
         checkout_id = request.data.get("checkout_request_id")
         status_response = query_stk_push(checkout_id)
+        # In your helper or inside stk_status_view
+        if status_response.get("errorCode") == "500.001.1001":
+            return Response({
+             "message": "Payment is still processing. Please wait...",
+             "status": "processing"
+                })
+
 
         result_code = status_response.get("ResultCode")
         receipt = status_response.get("MpesaReceiptNumber")
