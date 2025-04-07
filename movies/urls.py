@@ -8,6 +8,7 @@ from .views import (
     initiate_payment,
     stk_status_view,
     release_seats,
+    update_payment_status
 )
 
 urlpatterns = [
@@ -32,4 +33,7 @@ urlpatterns = [
 
     # Release seats
     path("release-seats/", release_seats, name="release-seats"),
+
+    # Update payment status
+    path("update-payment/", update_payment_status, name="update-payment-status"),
 ]
