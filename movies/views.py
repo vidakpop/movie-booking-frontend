@@ -294,7 +294,6 @@ def initiate_payment(request):
         return Response({"message": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Query STK Push status
 def query_stk_push(checkout_request_id):
-    print("Quering...")
     try:
         token = generate_access_token()
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
@@ -316,52 +315,56 @@ def query_stk_push(checkout_request_id):
             json=request_body,
             headers=headers,
         )
-        print(response.json())
+
         return response.json()
 
     except requests.RequestException as e:
-        print(f"Error querying STK status: {str(e)}")
         return {"error": str(e)}
 
-# View to query the STK status and return it to the frontend
+# API view to query payment status
 @api_view(['POST'])
 def stk_status_view(request):
     try:
         checkout_id = request.data.get("checkout_request_id")
-        status_response = query_stk_push(checkout_id)
-        # In your helper or inside stk_status_view
-        if status_response.get("errorCode") == "500.001.1001":
-            return Response({
-             "message": "Payment is still processing. Please wait...",
-             "status": "processing"
-                })
+        if not checkout_id:
+            return Response({"message": "Checkout Request ID required"}, status=400)
 
+        status_response = query_stk_push(checkout_id)
 
         result_code = status_response.get("ResultCode")
         receipt = status_response.get("MpesaReceiptNumber")
         transaction_date = status_response.get("TransactionDate")
 
         transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
-        
-        if result_code == 0:
+
+        if result_code == "0" and receipt and transaction_date:
             transaction.status = "success"
             transaction.mpesa_receipt_number = receipt
             transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
             transaction.save()
 
             booking = transaction.booking
-            booking.status = 'booked'
+            booking.status = "booked"
             booking.save()
 
             return Response({"message": "Payment confirmed", "status": "success"})
+
+        elif result_code == "0":
+            return Response({
+                "message": "Payment is still processing. Please wait...",
+                "status": "processing"
+            })
+
         else:
             transaction.status = "failed"
             transaction.save()
-            return Response({"message": "Payment failed", "status": "failed"})
+            return Response({
+                "message": status_response.get("ResultDesc", "Payment failed"),
+                "status": "failed"
+            })
 
     except Exception as e:
         return Response({"message": f"Error: {str(e)}"}, status=500)
-
 @api_view(['POST'])
 def release_seats(request):
     booking_id = request.data.get('booking_id')
