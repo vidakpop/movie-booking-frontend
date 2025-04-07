@@ -13,6 +13,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from rest_framework.decorators import api_view, permission_classes
 from django.http import JsonResponse, HttpResponseBadRequest
+from django.utils import timezone
 
 class SeatAvailabilityView(APIView):
     #RETURNS seats availabity for cinema
