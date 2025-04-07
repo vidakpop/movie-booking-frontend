@@ -377,7 +377,34 @@ def release_seats(request):
         booking.delete()  # Or free the seats instead
         return Response({'message': 'Seats released'})
     return Response({'error': 'Booking not found or already paid'}, status=404)
+@api_view(['POST'])
+def update_payment_status(request):
+    try:
+        data = request.data
+        checkout_id = data.get("checkout_request_id")
 
+        if not checkout_id:
+            return Response({"error": "Missing checkout_request_id"}, status=400)
+
+        transaction = Transaction.objects.get(checkout_request_id=checkout_id)
+
+        transaction.status = "success"
+        transaction.amount = data.get("amount")
+        transaction.mpesa_receipt_number = data.get("mpesa_receipt_number")
+        transaction.phone_number = data.get("phone_number")
+        transaction.transaction_date = timezone.now()
+        transaction.save()
+
+        if transaction.booking:
+            transaction.booking.status = "booked"
+            transaction.booking.save()
+
+        return Response({"message": "Transaction updated successfully"}, status=200)
+
+    except Transaction.DoesNotExist:
+        return Response({"error": "Transaction not found"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
 
 # from django.views.decorators.csrf import csrf_exempt
 # from django.http import JsonResponse, HttpResponseBadRequest
