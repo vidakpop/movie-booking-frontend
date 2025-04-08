@@ -406,7 +406,7 @@ def release_seats(request):
 def update_payment_status(request):
     try:
         print("=== update_payment_status hit ===")
-        print("Request Data:", request.data)
+        print("Callback Request Data:", request.data)  # <- KEY LINE
 
         data = request.data
         checkout_id = data.get("checkout_request_id")
@@ -435,6 +435,7 @@ def update_payment_status(request):
     except Exception as e:
         print("Error in update_payment_status:", str(e))
         return Response({"message": f"Error updating status: {str(e)}"}, status=500)
+
 
 # from django.views.decorators.csrf import csrf_exempt
 # from django.http import JsonResponse, HttpResponseBadRequest
