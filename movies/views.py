@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from rest_framework.decorators import api_view, permission_classes
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 class SeatAvailabilityView(APIView):
     #RETURNS seats availabity for cinema
@@ -382,30 +383,28 @@ def update_payment_status(request):
     try:
         data = request.data
         checkout_id = data.get("checkout_request_id")
-
-        if not checkout_id:
-            return Response({"error": "Missing checkout_request_id"}, status=400)
+        receipt = data.get("receipt_number")
+        phone = data.get("phone")
+        amount = data.get("amount")
 
         transaction = Transaction.objects.get(checkout_request_id=checkout_id)
 
         transaction.status = "success"
-        transaction.amount = data.get("amount")
-        transaction.mpesa_receipt_number = data.get("mpesa_receipt_number")
-        transaction.phone_number = data.get("phone_number")
-        transaction.transaction_date = timezone.now()
+        transaction.mpesa_receipt_number = receipt
+        transaction.phone_number = phone
+        transaction.amount = amount
         transaction.save()
 
-        if transaction.booking:
-            transaction.booking.status = "booked"
-            transaction.booking.save()
+        booking = transaction.booking
+        booking.status = "booked"
+        booking.save()
 
-        return Response({"message": "Transaction updated successfully"}, status=200)
+        return Response({"message": "Payment confirmed via callback", "status": "success"})
 
     except Transaction.DoesNotExist:
-        return Response({"error": "Transaction not found"}, status=404)
+        return Response({"message": "Transaction not found"}, status=404)
     except Exception as e:
-        return Response({"error": str(e)}, status=500)
-
+        return Response({"message": f"Error updating status: {str(e)}"}, status=500)
 # from django.views.decorators.csrf import csrf_exempt
 # from django.http import JsonResponse, HttpResponseBadRequest
 # @csrf_exempt  # To allow POST requests from external sources like M-Pesa
