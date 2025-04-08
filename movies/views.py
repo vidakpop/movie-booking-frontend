@@ -328,26 +328,28 @@ def query_stk_push(checkout_request_id):
 def stk_status_view(request):
     try:
         print("=== stk_status_view hit ===")
-        print("Request Data:", request.data)
-
         checkout_id = request.data.get("checkout_request_id")
+
         if not checkout_id:
             return Response({"message": "Checkout Request ID required"}, status=400)
 
-        # Try to get the transaction
+        # 1. Check if already updated (by callback or previous check)
         transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
         print("Transaction Found:", transaction.id)
 
-        # If already confirmed by callback
         if transaction.status == "success":
-            print("Payment already confirmed via callback.")
             return Response({
                 "message": "Payment already confirmed",
                 "status": "success",
-                "mpesa_receipt_number": transaction.mpesa_receipt_number,
+                "mpesa_receipt_number": transaction.mpesa_receipt_number
+            })
+        elif transaction.status == "failed":
+            return Response({
+                "message": "Payment failed",
+                "status": "failed"
             })
 
-        # Otherwise, poll Safaricom's STK Query API
+        # 2. If still pending, call STK Query API
         status_response = query_stk_push(checkout_id)
         print("STK Query Response:", status_response)
 
@@ -356,7 +358,7 @@ def stk_status_view(request):
         transaction_date = status_response.get("TransactionDate")
 
         if result_code == "0" and receipt and transaction_date:
-            print("Payment successful via polling.")
+            # Update DB with success
             transaction.status = "success"
             transaction.mpesa_receipt_number = receipt
             transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
@@ -369,14 +371,14 @@ def stk_status_view(request):
             return Response({"message": "Payment confirmed", "status": "success"})
 
         elif result_code == "0":
-            print("Still processing...")
+            # Still processing
             return Response({
                 "message": "Payment is still processing. Please wait...",
                 "status": "pending"
             })
 
         else:
-            print("Payment failed:", status_response.get("ResultDesc"))
+            # Failed
             transaction.status = "failed"
             transaction.save()
             return Response({
@@ -387,7 +389,6 @@ def stk_status_view(request):
     except Exception as e:
         print("Error in stk_status_view:", str(e))
         return Response({"message": f"Error: {str(e)}"}, status=500)
-
 
 @api_view(['POST'])
 def release_seats(request):
