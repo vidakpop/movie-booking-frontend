@@ -409,6 +409,8 @@ def update_payment_status(request):
         print("Callback Request Data:", request.data)  # <- KEY LINE
 
         data = request.data
+        print("📬 Received Update Payload:", data)
+
         checkout_id = data.get("checkout_request_id")
         receipt = data.get("receipt_number")
         phone = data.get("phone")
