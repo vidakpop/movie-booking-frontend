@@ -327,19 +327,26 @@ def query_stk_push(checkout_request_id):
 @api_view(['POST'])
 def stk_status_view(request):
     try:
+        print("=== stk_status_view hit ===")
+        print("Request Data:", request.data)
+
         checkout_id = request.data.get("checkout_request_id")
         if not checkout_id:
+            print("Missing checkout ID")
             return Response({"message": "Checkout Request ID required"}, status=400)
 
         status_response = query_stk_push(checkout_id)
+        print("STK Query Response:", status_response)
 
         result_code = status_response.get("ResultCode")
         receipt = status_response.get("MpesaReceiptNumber")
         transaction_date = status_response.get("TransactionDate")
 
         transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
+        print("Transaction Found:", transaction.id)
 
         if result_code == "0" and receipt and transaction_date:
+            print("Payment successful")
             transaction.status = "success"
             transaction.mpesa_receipt_number = receipt
             transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
@@ -352,12 +359,14 @@ def stk_status_view(request):
             return Response({"message": "Payment confirmed", "status": "success"})
 
         elif result_code == "0":
+            print("Still processing...")
             return Response({
                 "message": "Payment is still processing. Please wait...",
                 "status": "processing"
             })
 
         else:
+            print("Payment failed:", status_response.get("ResultDesc"))
             transaction.status = "failed"
             transaction.save()
             return Response({
@@ -366,12 +375,15 @@ def stk_status_view(request):
             })
 
     except Exception as e:
+        print("Error in stk_status_view:", str(e))
         return Response({"message": f"Error: {str(e)}"}, status=500)
+
 @api_view(['POST'])
 def release_seats(request):
     booking_id = request.data.get('booking_id')
     if not booking_id:
         return Response({'error': 'Booking ID missing'}, status=400)
+
 
     booking = Booking.objects.filter(id=booking_id, paid=False).first()
     if booking:
@@ -381,6 +393,9 @@ def release_seats(request):
 @api_view(['POST'])
 def update_payment_status(request):
     try:
+        print("=== update_payment_status hit ===")
+        print("Request Data:", request.data)
+
         data = request.data
         checkout_id = data.get("checkout_request_id")
         receipt = data.get("receipt_number")
@@ -388,6 +403,7 @@ def update_payment_status(request):
         amount = data.get("amount")
 
         transaction = Transaction.objects.get(checkout_request_id=checkout_id)
+        print("Transaction Found:", transaction.id)
 
         transaction.status = "success"
         transaction.mpesa_receipt_number = receipt
@@ -402,9 +418,12 @@ def update_payment_status(request):
         return Response({"message": "Payment confirmed via callback", "status": "success"})
 
     except Transaction.DoesNotExist:
+        print("Transaction not found for checkout_id:", checkout_id)
         return Response({"message": "Transaction not found"}, status=404)
     except Exception as e:
+        print("Error in update_payment_status:", str(e))
         return Response({"message": f"Error updating status: {str(e)}"}, status=500)
+
 # from django.views.decorators.csrf import csrf_exempt
 # from django.http import JsonResponse, HttpResponseBadRequest
 # @csrf_exempt  # To allow POST requests from external sources like M-Pesa
