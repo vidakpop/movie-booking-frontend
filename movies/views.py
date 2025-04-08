@@ -332,9 +332,22 @@ def stk_status_view(request):
 
         checkout_id = request.data.get("checkout_request_id")
         if not checkout_id:
-            print("Missing checkout ID")
             return Response({"message": "Checkout Request ID required"}, status=400)
 
+        # Try to get the transaction
+        transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
+        print("Transaction Found:", transaction.id)
+
+        # If already confirmed by callback
+        if transaction.status == "success":
+            print("Payment already confirmed via callback.")
+            return Response({
+                "message": "Payment already confirmed",
+                "status": "success",
+                "mpesa_receipt_number": transaction.mpesa_receipt_number,
+            })
+
+        # Otherwise, poll Safaricom's STK Query API
         status_response = query_stk_push(checkout_id)
         print("STK Query Response:", status_response)
 
@@ -342,11 +355,8 @@ def stk_status_view(request):
         receipt = status_response.get("MpesaReceiptNumber")
         transaction_date = status_response.get("TransactionDate")
 
-        transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
-        print("Transaction Found:", transaction.id)
-
         if result_code == "0" and receipt and transaction_date:
-            print("Payment successful")
+            print("Payment successful via polling.")
             transaction.status = "success"
             transaction.mpesa_receipt_number = receipt
             transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
@@ -362,7 +372,7 @@ def stk_status_view(request):
             print("Still processing...")
             return Response({
                 "message": "Payment is still processing. Please wait...",
-                "status": "processing"
+                "status": "pending"
             })
 
         else:
@@ -377,6 +387,7 @@ def stk_status_view(request):
     except Exception as e:
         print("Error in stk_status_view:", str(e))
         return Response({"message": f"Error: {str(e)}"}, status=500)
+
 
 @api_view(['POST'])
 def release_seats(request):
