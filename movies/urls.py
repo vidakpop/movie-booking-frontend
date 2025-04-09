@@ -8,7 +8,9 @@ from .views import (
     initiate_payment,
     stk_status_view,
     release_seats,
-    update_payment_status
+    update_payment_status,
+    mpesa_callback,
+
 )
 
 urlpatterns = [
@@ -36,4 +38,7 @@ urlpatterns = [
 
     # Update payment status
     path("update-payment/", update_payment_status, name="update-payment-status"),
+
+    # M-Pesa callback
+    path("status/", mpesa_callback, name="mpesa-callback"),
 ]

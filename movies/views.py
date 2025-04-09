@@ -15,6 +15,7 @@ from rest_framework.decorators import api_view, permission_classes
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.views.decorators.csrf import csrf_exempt
 
 class SeatAvailabilityView(APIView):
     #RETURNS seats availabity for cinema
@@ -328,6 +329,7 @@ def query_stk_push(checkout_request_id):
 def stk_status_view(request):
     try:
         print("=== stk_status_view hit ===")
+        
         checkout_id = request.data.get("checkout_request_id")
 
         if not checkout_id:
@@ -405,39 +407,91 @@ def release_seats(request):
 @api_view(['POST'])
 def update_payment_status(request):
     try:
-        print("=== update_payment_status hit ===")
-        print("Callback Request Data:", request.data)  # <- KEY LINE
+        print("\n🔔 === [update_payment_status] Endpoint Hit ===")
+        print("📩 Incoming Request Data:", request.data)
 
         data = request.data
-        print("📬 Received Update Payload:", data)
-
         checkout_id = data.get("checkout_request_id")
         receipt = data.get("receipt_number")
         phone = data.get("phone")
         amount = data.get("amount")
 
-        transaction = Transaction.objects.get(checkout_request_id=checkout_id)
-        print("Transaction Found:", transaction.id)
+        print(f"🔍 Extracted: Checkout ID: {checkout_id}, Receipt: {receipt}, Phone: {phone}, Amount: {amount}")
 
+        if not all([checkout_id, receipt, phone, amount]):
+            return Response({"message": "Missing required fields"}, status=400)
+
+        try:
+            transaction = Transaction.objects.get(checkout_request_id=checkout_id)
+            print("✅ Transaction Found:", transaction.id)
+        except Transaction.DoesNotExist:
+            print("❌ Transaction not found for checkout_id:", checkout_id)
+            return Response({"message": "Transaction not found"}, status=404)
+
+        # Update transaction info
         transaction.status = "success"
         transaction.mpesa_receipt_number = receipt
         transaction.phone_number = phone
         transaction.amount = amount
         transaction.save()
+        print("✅ Transaction Updated Successfully.")
 
-        booking = transaction.booking
-        booking.status = "booked"
-        booking.save()
+        # Update related booking if exists
+        if hasattr(transaction, 'booking'):
+            transaction.booking.status = "booked"
+            transaction.booking.save()
+            print("✅ Related Booking Updated to 'booked'")
+        else:
+            print("ℹ️ No related booking found.")
 
         return Response({"message": "Payment confirmed via callback", "status": "success"})
 
-    except Transaction.DoesNotExist:
-        print("Transaction not found for checkout_id:", checkout_id)
-        return Response({"message": "Transaction not found"}, status=404)
     except Exception as e:
-        print("Error in update_payment_status:", str(e))
+        print("🚨 Exception in update_payment_status:", str(e))
         return Response({"message": f"Error updating status: {str(e)}"}, status=500)
 
+@csrf_exempt
+@api_view(['POST'])
+def mpesa_callback(request):
+    print("== Safaricom Callback Hit ==")
+    print("Callback Raw Data:", request.body)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        callback_data = data['Body']['stkCallback']
+        print("Parsed Callback:", callback_data)
+
+        result_code = callback_data['ResultCode']
+        if result_code == 0:
+            metadata = callback_data['CallbackMetadata']['Item']
+            mpesa_data = {item['Name']: item.get('Value') for item in metadata}
+
+            checkout_id = callback_data['CheckoutRequestID']
+            receipt = mpesa_data.get('MpesaReceiptNumber')
+            amount = mpesa_data.get('Amount')
+            phone = mpesa_data.get('PhoneNumber')
+            transaction_date = mpesa_data.get('TransactionDate')
+
+            # Update transaction
+            transaction = Transaction.objects.get(checkout_request_id=checkout_id)
+            transaction.status = "success"
+            transaction.mpesa_receipt_number = receipt
+            transaction.phone_number = phone
+            transaction.amount = amount
+            transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
+            transaction.save()
+
+            booking = transaction.booking
+            booking.status = "booked"
+            booking.save()
+        else:
+            print("Payment failed or was cancelled")
+
+        return JsonResponse({"ResultCode": 0, "ResultDesc": "OK"})
+
+    except Exception as e:
+        print("Callback Error:", str(e))
+        return JsonResponse({"ResultCode": 1, "ResultDesc": str(e)})
 
 # from django.views.decorators.csrf import csrf_exempt
 # from django.http import JsonResponse, HttpResponseBadRequest
