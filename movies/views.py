@@ -324,7 +324,6 @@ def query_stk_push(checkout_request_id):
     except requests.RequestException as e:
         return {"error": str(e)}
 
-# API view to query payment status
 @api_view(['POST'])
 def stk_status_view(request):
     try:
@@ -335,58 +334,28 @@ def stk_status_view(request):
         if not checkout_id:
             return Response({"message": "Checkout Request ID required"}, status=400)
 
-        # 1. Check if already updated (by callback or previous check)
         transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
         print("Transaction Found:", transaction.id)
 
+        # 🟢 Short-circuit if already updated
         if transaction.status == "success":
             return Response({
                 "message": "Payment already confirmed",
                 "status": "success",
                 "mpesa_receipt_number": transaction.mpesa_receipt_number
             })
+
         elif transaction.status == "failed":
             return Response({
                 "message": "Payment failed",
                 "status": "failed"
             })
 
-        # 2. If still pending, call STK Query API
-        status_response = query_stk_push(checkout_id)
-        print("STK Query Response:", status_response)
-
-        result_code = status_response.get("ResultCode")
-        receipt = status_response.get("MpesaReceiptNumber")
-        transaction_date = status_response.get("TransactionDate")
-
-        if result_code == "0" and receipt and transaction_date:
-            # Update DB with success
-            transaction.status = "success"
-            transaction.mpesa_receipt_number = receipt
-            transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
-            transaction.save()
-
-            booking = transaction.booking
-            booking.status = "booked"
-            booking.save()
-
-            return Response({"message": "Payment confirmed", "status": "success"})
-
-        elif result_code == "0":
-            # Still processing
-            return Response({
-                "message": "Payment is still processing. Please wait...",
-                "status": "pending"
-            })
-
-        else:
-            # Failed
-            transaction.status = "failed"
-            transaction.save()
-            return Response({
-                "message": status_response.get("ResultDesc", "Payment failed"),
-                "status": "failed"
-            })
+        # 🕓 Still pending - just wait for callback
+        return Response({
+            "message": "Payment is still processing. Please wait...",
+            "status": "pending"
+        })
 
     except Exception as e:
         print("Error in stk_status_view:", str(e))
@@ -460,56 +429,53 @@ def mpesa_callback(request):
         data = json.loads(request.body.decode('utf-8'))
         print("✅ JSON Parsed Data:", data)
 
-        callback_data = data['Body']['stkCallback']
+        callback_data = data.get('Body', {}).get('stkCallback', {})
         print("📦 Callback Extracted:", callback_data)
 
-        result_code = callback_data['ResultCode']
-        result_desc = callback_data['ResultDesc']
-        print(f"🎯 Result Code: {result_code} | Description: {result_desc}")
+        result_code = callback_data.get('ResultCode')
+        checkout_id = callback_data.get('CheckoutRequestID')
 
         if result_code == 0:
-            metadata = callback_data['CallbackMetadata']['Item']
+            metadata = callback_data.get('CallbackMetadata', {}).get('Item', [])
             mpesa_data = {item['Name']: item.get('Value') for item in metadata}
-            print("💰 Extracted Metadata:", mpesa_data)
+            print("📊 Extracted M-Pesa Data:", mpesa_data)
 
-            checkout_id = callback_data['CheckoutRequestID']
             receipt = mpesa_data.get('MpesaReceiptNumber')
             amount = mpesa_data.get('Amount')
             phone = mpesa_data.get('PhoneNumber')
             transaction_date = mpesa_data.get('TransactionDate')
 
-            print(f"🔍 Looking for Transaction with Checkout ID: {checkout_id}")
-            transaction = Transaction.objects.get(checkout_request_id=checkout_id)
+            # Check if transaction exists
+            try:
+                transaction = Transaction.objects.get(checkout_request_id=checkout_id)
+                print("✅ Transaction Found:", transaction)
 
-            # Update the transaction
-            transaction.status = "success"
-            transaction.mpesa_receipt_number = receipt
-            transaction.phone_number = phone
-            transaction.amount = amount
-            transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
-            transaction.save()
-            print("✅ Transaction Updated:", transaction)
+                # Update transaction
+                transaction.status = "success"
+                transaction.mpesa_receipt_number = receipt
+                transaction.phone_number = phone
+                transaction.amount = amount
+                transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
+                transaction.save()
+                print("✅ Transaction Updated")
 
-            # Update the related booking
-            booking = transaction.booking
-            booking.status = "booked"
-            booking.save()
-            print("📘 Booking Status Updated:", booking)
+                # Update booking if exists
+                if transaction.booking:
+                    transaction.booking.status = "booked"
+                    transaction.booking.save()
+                    print("✅ Booking Updated")
 
-            # Optional: Send a signal or WebSocket push if needed
+            except Transaction.DoesNotExist:
+                print("❌ Transaction with checkout ID", checkout_id, "not found")
+
         else:
-            print("❌ Payment Failed or Cancelled:", result_desc)
+            print("❌ Payment was not successful. ResultCode:", result_code)
 
-        return JsonResponse({"ResultCode": 0, "ResultDesc": "Callback Processed OK"})
-
-    except Transaction.DoesNotExist:
-        print("🚫 Transaction Not Found for Checkout ID")
-        return JsonResponse({"ResultCode": 1, "ResultDesc": "Transaction not found"})
+        return JsonResponse({"ResultCode": 0, "ResultDesc": "OK"})
 
     except Exception as e:
         print("💥 Callback Error:", str(e))
         return JsonResponse({"ResultCode": 1, "ResultDesc": f"Error: {str(e)}"})
-
 # from django.views.decorators.csrf import csrf_exempt
 # from django.http import JsonResponse, HttpResponseBadRequest
 # @csrf_exempt  # To allow POST requests from external sources like M-Pesa
