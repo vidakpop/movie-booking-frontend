@@ -339,7 +339,7 @@ def stk_status_view(request):
             print("[ERROR] checkout_request_id is missing.")
             return Response({"message": "❌ Checkout Request ID is required"}, status=400)
 
-        # Try to fetch transaction
+        # Fetch the transaction from the database
         try:
             transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
             print(f"[DEBUG] Transaction Found: ID={transaction.id}, Status={transaction.status}")
@@ -347,7 +347,7 @@ def stk_status_view(request):
             print("[ERROR] Failed to fetch transaction:", str(fetch_error))
             return Response({"message": "❌ Transaction not found"}, status=404)
 
-        # 🟢 Success case
+        # 🟢 If transaction status is already success
         if transaction.status == "success":
             print("[DEBUG] Transaction already marked as SUCCESS.")
             return Response({
@@ -356,7 +356,7 @@ def stk_status_view(request):
                 "mpesa_receipt_number": transaction.mpesa_receipt_number or "N/A"
             })
 
-        # 🔴 Failed case
+        # 🔴 If transaction is failed
         elif transaction.status == "failed":
             print("[DEBUG] Transaction marked as FAILED.")
             return Response({
@@ -364,17 +364,45 @@ def stk_status_view(request):
                 "status": "failed"
             })
 
-        # ⏳ Pending case
-        print("[DEBUG] Transaction still pending...")
-        return Response({
-            "message": "⌛ Payment is still processing. Please wait...",
-            "status": "pending"
-        })
+        # ⏳ If status is still pending, query the M-Pesa API
+        print("[DEBUG] Transaction still pending, querying M-Pesa API...")
+        
+        # Query the STK Push status from M-Pesa API
+        status = query_stk_push(checkout_id)
+
+        # Check if the query response contains the correct status
+        if status.get("error"):
+            print("[ERROR] Error querying STK status:", status["error"])
+            return Response({"message": "❌ Error querying STK status"}, status=500)
+        
+        # Process the returned status from M-Pesa
+        result_code = status.get("Body", {}).get("stkCallback", {}).get("ResultCode")
+        result_desc = status.get("Body", {}).get("stkCallback", {}).get("ResultDesc")
+
+        if result_code == 0:  # Payment was successful
+            receipt = next((item["Value"] for item in status["Body"]["stkCallback"]["CallbackMetadata"]["Item"] if item["Name"] == "MpesaReceiptNumber"), None)
+            transaction.status = "success"
+            transaction.mpesa_receipt_number = receipt
+            transaction.save()
+            print(f"[DEBUG] Payment confirmed, receipt: {receipt}")
+            return Response({
+                "message": "✅ Payment confirmed",
+                "status": "success",
+                "mpesa_receipt_number": receipt
+            })
+
+        else:  # Payment failed
+            transaction.status = "failed"
+            transaction.save()
+            print("[DEBUG] Payment failed.")
+            return Response({
+                "message": f"❌ Payment failed: {result_desc}",
+                "status": "failed"
+            })
 
     except Exception as e:
         print("[FATAL ERROR] stk_status_view Exception:", str(e))
         return Response({"message": f"❌ Internal server error: {str(e)}"}, status=500)
-
 
 @api_view(['POST'])
 def release_seats(request):
