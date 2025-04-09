@@ -453,18 +453,24 @@ def update_payment_status(request):
 @csrf_exempt
 @api_view(['POST'])
 def mpesa_callback(request):
-    print("== Safaricom Callback Hit ==")
-    print("Callback Raw Data:", request.body)
+    print("🔔 Safaricom Callback Hit")
+    print("📩 Raw Callback Data:", request.body)
 
     try:
         data = json.loads(request.body.decode('utf-8'))
+        print("✅ JSON Parsed Data:", data)
+
         callback_data = data['Body']['stkCallback']
-        print("Parsed Callback:", callback_data)
+        print("📦 Callback Extracted:", callback_data)
 
         result_code = callback_data['ResultCode']
+        result_desc = callback_data['ResultDesc']
+        print(f"🎯 Result Code: {result_code} | Description: {result_desc}")
+
         if result_code == 0:
             metadata = callback_data['CallbackMetadata']['Item']
             mpesa_data = {item['Name']: item.get('Value') for item in metadata}
+            print("💰 Extracted Metadata:", mpesa_data)
 
             checkout_id = callback_data['CheckoutRequestID']
             receipt = mpesa_data.get('MpesaReceiptNumber')
@@ -472,26 +478,37 @@ def mpesa_callback(request):
             phone = mpesa_data.get('PhoneNumber')
             transaction_date = mpesa_data.get('TransactionDate')
 
-            # Update transaction
+            print(f"🔍 Looking for Transaction with Checkout ID: {checkout_id}")
             transaction = Transaction.objects.get(checkout_request_id=checkout_id)
+
+            # Update the transaction
             transaction.status = "success"
             transaction.mpesa_receipt_number = receipt
             transaction.phone_number = phone
             transaction.amount = amount
             transaction.transaction_date = datetime.strptime(str(transaction_date), '%Y%m%d%H%M%S')
             transaction.save()
+            print("✅ Transaction Updated:", transaction)
 
+            # Update the related booking
             booking = transaction.booking
             booking.status = "booked"
             booking.save()
-        else:
-            print("Payment failed or was cancelled")
+            print("📘 Booking Status Updated:", booking)
 
-        return JsonResponse({"ResultCode": 0, "ResultDesc": "OK"})
+            # Optional: Send a signal or WebSocket push if needed
+        else:
+            print("❌ Payment Failed or Cancelled:", result_desc)
+
+        return JsonResponse({"ResultCode": 0, "ResultDesc": "Callback Processed OK"})
+
+    except Transaction.DoesNotExist:
+        print("🚫 Transaction Not Found for Checkout ID")
+        return JsonResponse({"ResultCode": 1, "ResultDesc": "Transaction not found"})
 
     except Exception as e:
-        print("Callback Error:", str(e))
-        return JsonResponse({"ResultCode": 1, "ResultDesc": str(e)})
+        print("💥 Callback Error:", str(e))
+        return JsonResponse({"ResultCode": 1, "ResultDesc": f"Error: {str(e)}"})
 
 # from django.views.decorators.csrf import csrf_exempt
 # from django.http import JsonResponse, HttpResponseBadRequest
