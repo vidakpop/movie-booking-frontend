@@ -397,6 +397,14 @@ def update_payment_status(request):
             print("❌ Transaction not found for checkout_id:", checkout_id)
             return Response({"message": "Transaction not found"}, status=404)
 
+        # 🟢 Check if transaction is already updated to success
+        if transaction.status == "success":
+            return Response({
+                "message": "Payment already confirmed",
+                "status": "success",
+                "mpesa_receipt_number": transaction.mpesa_receipt_number
+            })
+
         # Update transaction info
         transaction.status = "success"
         transaction.mpesa_receipt_number = receipt
