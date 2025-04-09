@@ -324,42 +324,57 @@ def query_stk_push(checkout_request_id):
     except requests.RequestException as e:
         return {"error": str(e)}
 
+
+
 @api_view(['POST'])
 def stk_status_view(request):
     try:
-        print("=== stk_status_view hit ===")
-        
+        print("\n\n=== [DEBUG] stk_status_view HIT ===")
+        print("[DEBUG] Incoming Data:", request.data)
+
         checkout_id = request.data.get("checkout_request_id")
+        print("[DEBUG] Extracted checkout_request_id:", checkout_id)
 
         if not checkout_id:
-            return Response({"message": "Checkout Request ID required"}, status=400)
+            print("[ERROR] checkout_request_id is missing.")
+            return Response({"message": "❌ Checkout Request ID is required"}, status=400)
 
-        transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
-        print("Transaction Found:", transaction.id)
+        # Try to fetch transaction
+        try:
+            transaction = get_object_or_404(Transaction, checkout_request_id=checkout_id)
+            print(f"[DEBUG] Transaction Found: ID={transaction.id}, Status={transaction.status}")
+        except Exception as fetch_error:
+            print("[ERROR] Failed to fetch transaction:", str(fetch_error))
+            return Response({"message": "❌ Transaction not found"}, status=404)
 
-        # 🟢 Short-circuit if already updated
+        # 🟢 Success case
         if transaction.status == "success":
+            print("[DEBUG] Transaction already marked as SUCCESS.")
             return Response({
-                "message": "Payment already confirmed",
+                "message": "✅ Payment already confirmed",
                 "status": "success",
-                "mpesa_receipt_number": transaction.mpesa_receipt_number
+                "mpesa_receipt_number": transaction.mpesa_receipt_number or "N/A"
             })
 
+        # 🔴 Failed case
         elif transaction.status == "failed":
+            print("[DEBUG] Transaction marked as FAILED.")
             return Response({
-                "message": "Payment failed",
+                "message": "❌ Payment failed",
                 "status": "failed"
             })
 
-        # 🕓 Still pending - just wait for callback
+        # ⏳ Pending case
+        print("[DEBUG] Transaction still pending...")
         return Response({
-            "message": "Payment is still processing. Please wait...",
+            "message": "⌛ Payment is still processing. Please wait...",
             "status": "pending"
         })
 
     except Exception as e:
-        print("Error in stk_status_view:", str(e))
-        return Response({"message": f"Error: {str(e)}"}, status=500)
+        print("[FATAL ERROR] stk_status_view Exception:", str(e))
+        return Response({"message": f"❌ Internal server error: {str(e)}"}, status=500)
+
 
 @api_view(['POST'])
 def release_seats(request):
